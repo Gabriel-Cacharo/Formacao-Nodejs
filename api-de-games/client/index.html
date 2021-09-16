@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loja de Games</title>
+  </head>
+  <body>
+    <hr />
+    <h4>Lista de Games</h4>
+    <ul id="games"></ul>
+    <hr />
+    <h4>Criar Game</h4>
+    <input type="text" name="title" id="title" placeholder="Título..." />
+    <br />
+    <input type="number" name="price" id="price" placeholder="Preço..." />
+    <br />
+    <br />
+    <button onclick="createGame()">Criar</button>
+    <hr />
+    <h4>Editar Game</h4>
+    <input type="text" name="idEdit" id="idEdit" placeholder="ID" readonly />
+    <input type="text" name="titleEdit" id="titleEdit" placeholder="Título..." />
+    <br />
+    <input type="number" name="priceEdit" id="priceEdit" placeholder="Preço..." />
+    <br />
+    <br />
+    <button onclick="updateGame()">Editar</button>
+    <hr />
+  </body>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    // Pegar todos os games e listar
+    axios
+      .get('http://localhost:3000/games')
+      .then((resp) => {
+        var games = resp.data
+        var list = document.getElementById('games')
+
+        games.forEach((game) => {
+          var item = document.createElement('li')
+
+          item.setAttribute('data-id', game.id)
+          item.setAttribute('data-title', game.title)
+          item.setAttribute('data-price', game.price)
+
+          item.innerHTML = `${game.id} - ${game.title} - $${game.price}`
+
+          var deleteButton = document.createElement('button')
+          deleteButton.innerHTML = 'Deletar'
+          deleteButton.addEventListener('click', function () {
+            deleteGame(item)
+          })
+
+          var editButton = document.createElement('button')
+          editButton.innerHTML = 'Editar'
+          editButton.addEventListener('click', () => {
+            loadForm(item)
+          })
+
+          item.appendChild(deleteButton)
+          item.appendChild(editButton)
+
+          list.appendChild(item)
+        })
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+
+    // Criar game
+    function createGame() {
+      var titleInput = document.getElementById('title')
+      var priceInput = document.getElementById('price')
+
+      var game = {
+        title: titleInput.value,
+        price: priceInput.value,
+      }
+
+      axios
+        .post('http://localhost:3000/games', game)
+        .then((resp) => {
+          if (resp.status == 201) {
+            alert('Game cadastrado!')
+          }
+        })
+        .catch((err) => {
+          console.log(err)
+        })
+    }
+
+    function deleteGame(listItem) {
+      var id = listItem.getAttribute('data-id')
+
+      axios
+        .delete(`http://localhost:3000/game/${id}`)
+        .then((resp) => {
+          alert('Game deletado!')
+        })
+        .catch((err) => {
+          console.log(err)
+        })
+    }
+
+    function loadForm(listItem) {
+      var id = listItem.getAttribute('data-id')
+      var title = listItem.getAttribute('data-title')
+      var price = listItem.getAttribute('data-price')
+      document.getElementById('idEdit').value = id
+      document.getElementById('titleEdit').value = title
+      document.getElementById('priceEdit').value = price
+    }
+
+    function updateGame() {
+      var idInput = document.getElementById('idEdit')
+      var titleInput = document.getElementById('titleEdit')
+      var priceInput = document.getElementById('priceEdit')
+
+      var game = {
+        title: titleInput.value,
+        price: priceInput.value,
+      }
+
+      var id = idInput.value
+
+      axios
+        .put(`http://localhost:3000/game/${id}`, game)
+        .then((resp) => {
+          if (resp.status == 200) {
+            alert('Game atualizado!')
+          }
+        })
+        .catch((err) => {
+          console.log(err)
+        })
+    }
+  </script>
+</html>
