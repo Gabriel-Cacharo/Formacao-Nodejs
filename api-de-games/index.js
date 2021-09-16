@@ -1,9 +1,11 @@
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const jwt = require('jsonwebtoken')
 
 const connection = require('./database/index')
 const Games = require('./database/models/Games')
+const Users = require('./database/models/Users')
 
 connection
   .authenticate()
@@ -18,13 +20,38 @@ app.use(cors())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 
-app.get('/games', async (req, res) => {
+const jwtSecret = 'dsa9d89as9dasmdsadjm122'
+
+function auth(req, res, next) {
+  const authToken = req.headers['authorization']
+
+  if (authToken != undefined) {
+    const bearer = authToken.split(' ')
+    var token = bearer[1]
+
+    jwt.verify(token, jwtSecret, (err, data) => {
+      if (err) {
+        res.status(401).json({ err: 'Token inválido!' })
+      } else {
+        req.token = token
+        req.loggedUser = { id: data.id, email: data.email }
+
+        next()
+      }
+    })
+  } else {
+    res.status(401).json({ err: 'Token inválido!' })
+  }
+}
+
+// Games
+app.get('/games', auth, async (req, res) => {
   await Games.findAll().then((games) => {
     res.status(200).json(games)
   })
 })
 
-app.get('/game/:id', (req, res) => {
+app.get('/game/:id', auth, (req, res) => {
   if (isNaN(req.params.id)) {
     res.status(400).send('Você deve fornecer um número!')
   } else {
@@ -40,7 +67,7 @@ app.get('/game/:id', (req, res) => {
   }
 })
 
-app.post('/games', async (req, res) => {
+app.post('/games', auth, async (req, res) => {
   var { title, price } = req.body
 
   if (title && price != undefined) {
@@ -54,7 +81,7 @@ app.post('/games', async (req, res) => {
   }
 })
 
-app.delete('/game/:id', (req, res) => {
+app.delete('/game/:id', auth, (req, res) => {
   if (isNaN(req.params.id)) {
     res.status(400).send()
   } else {
@@ -70,7 +97,7 @@ app.delete('/game/:id', (req, res) => {
   }
 })
 
-app.put('/game/:id', (req, res) => {
+app.put('/game/:id', auth, (req, res) => {
   if (isNaN(req.params.id)) {
     res.status(400).send()
   } else {
@@ -87,6 +114,42 @@ app.put('/game/:id', (req, res) => {
     )
 
     res.status(200).send()
+  }
+})
+
+// Users
+app.post('/users', auth, (req, res) => {
+  var { name, email, password } = req.body
+
+  Users.create({ name, email, password }).then((resp) => {
+    res.status(201).send()
+  })
+})
+
+// Login
+app.post('/auth', async (req, res) => {
+  var { email, password } = req.body
+
+  if (email != undefined) {
+    var user = await Users.findOne({ where: { email } })
+
+    if (user != undefined) {
+      if (user.password == password) {
+        jwt.sign({ id: user.id, email: user.email }, jwtSecret, { expiresIn: '48h' }, (err, token) => {
+          if (err) {
+            res.status(400).json({ err: 'Falha interna' })
+          } else {
+            res.status(200).json({ token: token })
+          }
+        })
+      } else {
+        res.status(401).json({ err: 'Credenciais inválidas!' })
+      }
+    } else {
+      res.status(404).json({ err: 'O email enviado não existe!' })
+    }
+  } else {
+    res.status(400).json({ err: 'O email é inválido!' })
   }
 })
 
