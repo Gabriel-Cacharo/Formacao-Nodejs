@@ -1,5 +1,6 @@
 const express = require('express')
 const app = express()
+const cors = require('cors')
 
 const connection = require('./database/index')
 const Games = require('./database/models/Games')
@@ -13,6 +14,7 @@ connection
     console.log(error)
   })
 
+app.use(cors())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 
