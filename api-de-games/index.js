@@ -46,8 +46,26 @@ function auth(req, res, next) {
 
 // Games
 app.get('/games', auth, async (req, res) => {
+  var HATEOAS = [
+    {
+      href: 'http://localhost:3000/games',
+      method: 'POST',
+      rel: 'create_game',
+    },
+    {
+      href: 'http://localhost:3000/game/:id',
+      method: 'DELETE',
+      rel: 'delete_game',
+    },
+    {
+      href: 'http://localhost:3000/game/:id',
+      method: 'PUT',
+      rel: 'modify_game',
+    },
+  ]
+
   await Games.findAll().then((games) => {
-    res.status(200).json(games)
+    res.status(200).json({ games, _links: HATEOAS })
   })
 })
 
@@ -57,9 +75,32 @@ app.get('/game/:id', auth, (req, res) => {
   } else {
     var id = parseInt(req.params.id)
 
+    var HATEOAS = [
+      {
+        href: `http://localhost:3000/games`,
+        method: 'POST',
+        rel: 'create_game',
+      },
+      {
+        href: `http://localhost:3000/game/${id}`,
+        method: 'GET',
+        rel: 'get_game',
+      },
+      {
+        href: `http://localhost:3000/game/${id}`,
+        method: 'DELETE',
+        rel: 'delete_game',
+      },
+      {
+        href: `http://localhost:3000/game/${id}`,
+        method: 'PUT',
+        rel: 'modify_game',
+      },
+    ]
+
     Games.findByPk(id).then((game) => {
       if (game != undefined) {
-        res.status(200).json(game)
+        res.status(200).json({ game, _links: HATEOAS })
       } else {
         res.status(404).send('Jogo não encontrado!')
       }
@@ -104,6 +145,29 @@ app.put('/game/:id', auth, (req, res) => {
     var id = req.params.id
     var { title, price } = req.body
 
+    var HATEOAS = [
+      {
+        href: `http://localhost:3000/games`,
+        method: 'POST',
+        rel: 'create_game',
+      },
+      {
+        href: `http://localhost:3000/game/${id}`,
+        method: 'GET',
+        rel: 'get_game',
+      },
+      {
+        href: `http://localhost:3000/game/${id}`,
+        method: 'DELETE',
+        rel: 'delete_game',
+      },
+      {
+        href: `http://localhost:3000/game/${id}`,
+        method: 'PUT',
+        rel: 'modify_game',
+      },
+    ]
+
     Games.update(
       { title, price },
       {
@@ -113,7 +177,7 @@ app.put('/game/:id', auth, (req, res) => {
       }
     )
 
-    res.status(200).send()
+    res.status(200).json({ _links: HATEOAS })
   }
 })
 
